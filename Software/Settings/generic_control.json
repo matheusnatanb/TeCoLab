@@ -1,0 +1,9 @@
+{
+    "controller": "controller",
+    "experiment": "StepResponse",
+    "parameters": {
+        "numerator": [1],
+        "denominator": [1, 2, 1],
+        "sampling_time": 0.2
+    }
+}
