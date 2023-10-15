@@ -43,7 +43,7 @@ class Controller:
     Methods:
     - run_control(set_points, temperatures): Runs the control algorithm and returns the control action.
     """
-    def __init__(self, numerator:list = [1], denominator:list = [1, 2, 1], sampling_time:int = 0.2, method='tustin'):
+    def __init__(self, numerator:list, denominator:list, sampling_time:int = 0.2, method='tustin'):
         """
         Initializes the Controller object.
 
@@ -53,6 +53,8 @@ class Controller:
         - sampling_time (int): The sampling time for the discrete-time control system.
         - method (str): The method used for discretization, default is 'tustin'.
         """
+        print(numerator)
+        print(denominator)
         self.sampling_time = sampling_time
 
         self.counter = 0
