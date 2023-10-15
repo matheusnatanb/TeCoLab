@@ -20,48 +20,57 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 '''
 
-from Modules.TCL_Experiment import *
-from Modules.TCL_CommunicationProtocol import *
-from Modules.TCL_CommandLineArguments import *
 import importlib
-import sys
+import json
+from Modules.TCL_Experiment import Experiment
+from Modules.TCL_CommunicationProtocol import searchTeCoLabPort, readTemperatures, writePWMs
+from Modules.TCL_CommandLineArguments import getParameters
 
-## Get parameters
 args = getParameters()
-expFilePath = "Experiments/" + args.ExperimentFileName + ".csv"
-expInfoPath = "Experiments/" + args.ExperimentFileName + ".txt"
-controlFilePath = "Controllers." + args.ControllerModuleName
-controlModule = importlib.import_module(controlFilePath)
+
+settings_file = args.SettingsFile
+settings = None
+
+try:
+	with open(f'Settings/{settings_file}.json', 'r', encoding='utf-8') as json_file:
+		settings = json.loads(json_file.read())
+except FileNotFoundError:
+	print(f"The file {settings_file} doesn't exist.")
+except Exception as e:
+	print(f"An error occurred: {e}")
+
+experiment_file_path = f'Experiments/{settings["experiment"]}.csv'
+experiment_info_path = f'Experiments/{settings["experiment"]}.txt'
+control_file_path = f'Controllers.{settings["controller"]}'
+control_module = importlib.import_module(control_file_path)
+parameters = settings['parameters']
 
 ## Search for a TeCoLab device
 tecolab = searchTeCoLabPort()
-if tecolab == False:
+if tecolab is False:
 	print("No TeCoLab device found. Terminating program.")
 	exit()
 
 ## Load the selected experiment
-print("Loading experiment: " + args.ExperimentFileName)
-exp = Experiment(expFilePath)
-expDescription = open(expInfoPath, 'r')
+print("Loading experiment: " + settings["experiment"])
+exp = Experiment(experiment_file_path)
+expDescription = open(experiment_info_path, 'r', encoding='utf-8')
 print(expDescription.read())
 print('Experiment table:')
 print(exp.expTable)
 
-## Load the selected controller
-if (args.period < 1):
-	args.period = 1
-cont = controlModule.Controller(T = args.period)
+cont = control_module.Controller(**parameters)
 
 ## Execute experiment
 exp.setInitialTime()
 
-while(exp.run_flag == True):
-	if (exp.iterationControl() == True):
+while exp.run_flag == True:
+	if exp.iterationControl() is True:
 		# Reads temperatures
 		exp.setTemperatures(readTemperatures(tecolab))
 
 		# Get control action
-		exp.controlAction = cont._control(exp.getSetPoints(), exp.getTemperatures())
+		exp.controlAction = cont.run_control(exp.getSetPoints(), exp.getTemperatures())
 
 		# Adds experiment disturbances
 		exp.applyDisturbances()
@@ -71,5 +80,3 @@ while(exp.run_flag == True):
 
 		# Logs the information
 		exp.log()
-
-		
